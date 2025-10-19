@@ -1,0 +1,59 @@
+{
+    "lang_code": "en",
+    "page_title": "GIFTPlay",
+
+    "presenter_subtitle": "Interactive quizzes in real time",
+    "upload_gift_file": "📁 Upload GIFT file",
+    "time_per_question": "⏱️ Time per question (seconds):",
+    "start_session": "Start Session",
+
+    "waiting_for_players": "Waiting for players...",
+    "game_code": "Game code:",
+    "copy_url": "Copy URL",
+    "connected_players": "Connected players:",
+    "start_game": "Start Game",
+
+    "question": "Question",
+    "pause": "Pause",
+    "resume": "Resume",
+    "end_question": "End Question",
+    "responses_received": "Responses received:",
+
+    "question_results": "Question Results",
+    "correct_answer": "Correct answer(s):",
+    "correct_answers": "Correct answers",
+    "incorrect_answers": "Incorrect answers",
+    "leaderboard": "Leaderboard",
+    "next_question": "Next Question",
+    "show_final_results": "Show Final Results",
+
+    "final_results": "🏆 Final Results",
+    "new_game": "New Game",
+    "export_results": "Export Results",
+
+    "your_name": "Your name:",
+    "choose_emoji": "Choose your emoji:",
+    "join_game": "Join Game!",
+    "waiting_to_start": "Waiting for the game to start...",
+    "players_connected": "Players connected:",
+
+    "answer_sent": "Answer sent - Waiting for results...",
+    "send_answer": "Send Answer",
+    "select_at_least_one": "Select at least one option",
+
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "points_earned": "Points earned:",
+    "total_points": "Total points:",
+    "waiting_next_question": "Waiting for next question...",
+
+    "game_finished": "🎉 Game Finished!",
+    "final_points": "Final Points",
+    "accuracy": "Accuracy",
+
+    "connection_error": "Connection Error",
+    "retry": "Retry",
+
+    "confirm_new_game": "Start a new game? Current data will be lost.",
+    "alert_no_questions_to_save": "No questions to save"
+}

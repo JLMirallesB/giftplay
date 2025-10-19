@@ -1,0 +1,59 @@
+{
+    "lang_code": "es",
+    "page_title": "GIFTPlay",
+
+    "presenter_subtitle": "Cuestionarios interactivos en tiempo real",
+    "upload_gift_file": "📁 Subir archivo GIFT",
+    "time_per_question": "⏱️ Tiempo por pregunta (segundos):",
+    "start_session": "Empezar Sesión",
+
+    "waiting_for_players": "Esperando jugadores...",
+    "game_code": "Código de la partida:",
+    "copy_url": "Copiar URL",
+    "connected_players": "Jugadores conectados:",
+    "start_game": "Empezar Juego",
+
+    "question": "Pregunta",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "end_question": "Finalizar Pregunta",
+    "responses_received": "Respuestas recibidas:",
+
+    "question_results": "Resultados de la Pregunta",
+    "correct_answer": "Respuesta(s) correcta(s):",
+    "correct_answers": "Respuestas correctas",
+    "incorrect_answers": "Respuestas incorrectas",
+    "leaderboard": "Clasificación",
+    "next_question": "Siguiente Pregunta",
+    "show_final_results": "Ver Resultados Finales",
+
+    "final_results": "🏆 Resultados Finales",
+    "new_game": "Nueva Partida",
+    "export_results": "Exportar Resultados",
+
+    "your_name": "Tu nombre:",
+    "choose_emoji": "Elige tu emoji:",
+    "join_game": "¡A jugar!",
+    "waiting_to_start": "Esperando a que empiece el juego...",
+    "players_connected": "Jugadores conectados:",
+
+    "answer_sent": "Respuesta enviada - Esperando resultados...",
+    "send_answer": "Enviar Respuesta",
+    "select_at_least_one": "Selecciona al menos una opción",
+
+    "correct": "¡Correcto!",
+    "incorrect": "Incorrecto",
+    "points_earned": "Puntos ganados:",
+    "total_points": "Puntos totales:",
+    "waiting_next_question": "Esperando siguiente pregunta...",
+
+    "game_finished": "🎉 ¡Juego Terminado!",
+    "final_points": "Puntos Finales",
+    "accuracy": "Precisión",
+
+    "connection_error": "Error de Conexión",
+    "retry": "Reintentar",
+
+    "confirm_new_game": "¿Iniciar una nueva partida? Se perderán los datos actuales.",
+    "alert_no_questions_to_save": "No hay preguntas para guardar"
+}

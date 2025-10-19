@@ -163,7 +163,7 @@ class GameState {
         const pregunta = this.getPreguntaActual();
         const opciones = pregunta.opciones;
 
-        if (pregunta.tipo === 'true-false' || pregunta.tipo === 'multiple-choice-single') {
+        if (pregunta.tipo === 'true-false' || pregunta.tipo === 'multiple-choice-single' || pregunta.tipo === 'short-answer') {
             // Respuesta única
             const opcionSeleccionada = opciones[respuesta];
             if (!opcionSeleccionada) {
@@ -205,6 +205,19 @@ class GameState {
                 esCorrecta: esCompletamenteCorrecta ? true : (puntosTotales > 0 ? puntosTotales : false),
                 puntosGanados: Math.max(0, puntosTotales) * 10, // Escalar puntos
                 feedback: feedbacks.join(' | ')
+            };
+        } else if (pregunta.tipo === 'numerical') {
+            // Pregunta numérica - el cliente ya habrá validado la respuesta
+            // respuesta es el índice de la opción numérica correcta
+            const opcionSeleccionada = opciones[respuesta];
+            if (!opcionSeleccionada) {
+                return { esCorrecta: false, puntosGanados: 0, feedback: '' };
+            }
+
+            return {
+                esCorrecta: opcionSeleccionada.correcta,
+                puntosGanados: opcionSeleccionada.correcta ? (opcionSeleccionada.peso * 10) : 0,
+                feedback: opcionSeleccionada.feedback || ''
             };
         }
 

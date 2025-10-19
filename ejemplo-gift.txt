@@ -1,0 +1,63 @@
+// Archivo de ejemplo de preguntas en formato GIFT
+// Para probar el parser mejorado de GIFTPlay
+
+// Pregunta 1: Verdadero/Falso simple
+::Q1:: 1+1=2 {T}
+
+// Pregunta 2: Verdadero/Falso con feedback
+::Q2:: El Sol sale por el Oeste.{F#Incorrecto, sale por el Este#Correcto, sale por el Este}
+
+// Pregunta 3: Opción múltiple con feedback
+::Q3:: ¿Qué color hay entre el naranja y el verde en el espectro?
+{
+=Amarillo# ¡Correcto! Bien hecho
+~Rojo # Incorrecto, es amarillo
+~Azul # Incorrecto, es amarillo
+~Verde # Incorrecto, es amarillo
+}
+
+// Pregunta 4: Opción múltiple compacta
+¿Quién está enterrado en la tumba de Grant?{=Grant ~Nadie ~Napoleón ~Churchill ~Madre Teresa}
+
+// Pregunta 5: Respuestas múltiples con porcentaje
+::Q5:: ¿Qué dos personas están sepultadas en la tumba de Grant? {
+   ~%-50%Nadie
+   ~%50%Grant
+   ~%50%La esposa de Grant
+   ~%-50%El padre de Grant
+}
+
+// Pregunta 6: Respuesta corta con múltiples opciones
+::Q6:: Dos más dos es igual a {=cuatro =4}
+
+// Pregunta 7: Con caracteres especiales escapados
+::Q7:: ¿Cuál respuesta es igual a 5? {
+   ~ \= 2 + 2
+   = \= 2 + 3
+   ~ \= 2 + 4
+}
+
+// Pregunta 8: Con formato Markdown
+[markdown]¿Cuál es la capital de **Francia**? {
+=París
+~Londres
+~Berlín
+~Madrid
+}
+
+// Pregunta 9: Con feedback general
+::Q9:: ¿En qué año llegó Colón a América? {
+=1492#¡Exacto!
+~1500#Muy cerca, pero fue en 1492
+~1482#Fue después, en 1492
+####Colón llegó a América en su primer viaje en 1492
+}
+
+// Pregunta 10: Opción múltiple con varios porcentajes
+::Q10:: Selecciona los números primos {
+~%33.33333%2
+~%33.33333%3
+~%-50%4
+~%33.33333%5
+~%-50%6
+}

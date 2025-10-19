@@ -18,13 +18,45 @@
                 <p class="subtitle" data-i18n-key="presenter_subtitle">Cuestionarios interactivos en tiempo real</p>
 
                 <div class="upload-section">
-                    <label for="gift-file-input" class="file-label">
-                        <span data-i18n-key="upload_gift_file">📁 Subir archivo GIFT</span>
-                        <input type="file" id="gift-file-input" accept=".gift,.txt" hidden>
-                    </label>
+                    <!-- Toggle entre Subir Archivo y Pegar Texto -->
+                    <div class="input-mode-toggle">
+                        <button id="btn-mode-file" class="toggle-btn active" data-i18n-key="mode_upload_file">📁 Subir Archivo</button>
+                        <button id="btn-mode-text" class="toggle-btn" data-i18n-key="mode_paste_text">📋 Pegar Texto</button>
+                    </div>
+
+                    <!-- Sección de subir archivo -->
+                    <div id="file-upload-section" class="input-section">
+                        <label for="gift-file-input" class="file-label">
+                            <span data-i18n-key="upload_gift_file">📁 Subir archivo GIFT</span>
+                            <input type="file" id="gift-file-input" accept=".gift,.txt" hidden>
+                        </label>
+                    </div>
+
+                    <!-- Sección de pegar texto -->
+                    <div id="text-input-section" class="input-section hidden">
+                        <textarea
+                            id="gift-text-input"
+                            class="gift-textarea"
+                            data-i18n-key="paste_gift_here"
+                            placeholder="Pega aquí tu texto en formato GIFT..."
+                            rows="10"
+                        ></textarea>
+                        <button id="btn-process-text" class="btn btn-primary" data-i18n-key="process_text">Procesar Texto</button>
+                    </div>
+
+                    <!-- Info del archivo/texto procesado -->
                     <div id="file-info" class="file-info hidden">
                         <span id="file-name"></span>
                         <span id="file-questions"></span>
+                    </div>
+
+                    <!-- Visualizador de preguntas -->
+                    <div id="questions-preview" class="questions-preview hidden">
+                        <div class="preview-header">
+                            <h3 data-i18n-key="questions_preview">Vista previa de preguntas</h3>
+                            <button id="btn-toggle-preview" class="btn-icon" data-i18n-key="collapse">▲</button>
+                        </div>
+                        <div id="questions-list" class="questions-list"></div>
                     </div>
                 </div>
 

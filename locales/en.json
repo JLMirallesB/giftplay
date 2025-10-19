@@ -3,7 +3,13 @@
     "page_title": "GIFTPlay",
 
     "presenter_subtitle": "Interactive quizzes in real time",
+    "mode_upload_file": "📁 Upload File",
+    "mode_paste_text": "📋 Paste Text",
     "upload_gift_file": "📁 Upload GIFT file",
+    "paste_gift_here": "Paste your GIFT format text here...",
+    "process_text": "Process Text",
+    "questions_preview": "Questions Preview",
+    "collapse": "▲",
     "time_per_question": "⏱️ Time per question (seconds):",
     "start_session": "Start Session",
 

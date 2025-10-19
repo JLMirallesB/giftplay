@@ -46,36 +46,56 @@ class GIFTParser {
 
     /**
      * Divide el texto en bloques de preguntas
+     * Una pregunta termina con } o con una línea vacía después del texto
      */
     splitIntoBlocks(text) {
         const lines = text.split('\n');
         const blocks = [];
         let currentBlock = [];
         let inQuestion = false;
+        let braceDepth = 0;
 
-        for (let line of lines) {
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             const trimmed = line.trim();
 
-            // Ignorar líneas vacías fuera de preguntas
-            if (!trimmed && !inQuestion) {
-                continue;
-            }
-
-            // Ignorar comentarios que no son directivas
+            // Ignorar comentarios que no son directivas (deben estar solos en su línea)
             if (trimmed.startsWith('//') && !trimmed.includes('@')) {
+                if (!inQuestion) continue;
+            }
+
+            // Línea vacía
+            if (!trimmed) {
+                if (inQuestion && braceDepth === 0) {
+                    // Fin de pregunta
+                    if (currentBlock.length > 0) {
+                        blocks.push(currentBlock.join('\n'));
+                        currentBlock = [];
+                        inQuestion = false;
+                    }
+                }
                 continue;
             }
 
-            // Detectar inicio de pregunta (línea con contenido no vacío)
-            if (trimmed && !inQuestion) {
-                inQuestion = true;
-                currentBlock = [line];
+            // Contar llaves para saber si estamos dentro de respuestas
+            for (let char of line) {
+                if (char === '{' && !this.isEscaped(line, line.indexOf(char))) {
+                    braceDepth++;
+                } else if (char === '}' && !this.isEscaped(line, line.indexOf(char))) {
+                    braceDepth--;
+                }
             }
-            // Detectar fin de pregunta (} en su propia línea o línea vacía después de })
-            else if (inQuestion) {
+
+            // Iniciar pregunta
+            if (!inQuestion && trimmed) {
+                inQuestion = true;
+            }
+
+            if (inQuestion) {
                 currentBlock.push(line);
 
-                if (trimmed === '}' || trimmed.endsWith('}')) {
+                // Si braceDepth vuelve a 0 y ya teníamos llaves, fin de pregunta
+                if (braceDepth === 0 && currentBlock.join('').includes('{')) {
                     blocks.push(currentBlock.join('\n'));
                     currentBlock = [];
                     inQuestion = false;
@@ -89,6 +109,20 @@ class GIFTParser {
         }
 
         return blocks.filter(b => b.trim());
+    }
+
+    /**
+     * Verifica si un caracter en una posición está escapado
+     */
+    isEscaped(text, pos) {
+        if (pos === 0) return false;
+        let backslashCount = 0;
+        let i = pos - 1;
+        while (i >= 0 && text[i] === '\\') {
+            backslashCount++;
+            i--;
+        }
+        return backslashCount % 2 === 1;
     }
 
     /**
@@ -106,7 +140,8 @@ class GIFTParser {
             opciones: [],
             feedback_general: '',
             multimedia: '',
-            tiempo: null
+            tiempo: null,
+            formato: 'moodle'
         };
 
         // Extraer título (::título::)
@@ -116,11 +151,17 @@ class GIFTParser {
             block = block.replace(titleMatch[0], '').trim();
         }
 
-        // Extraer directiva de tiempo (@time: N)
+        // Extraer directiva de tiempo (@time: N) - puede estar en comentario
         const timeMatch = block.match(/\/\/\s*@time:\s*(\d+)/i);
         if (timeMatch) {
             question.tiempo = parseInt(timeMatch[1]);
-            block = block.replace(timeMatch[0], '').trim();
+        }
+
+        // Extraer formato de texto [html], [markdown], [plain], [moodle]
+        const formatMatch = block.match(/\[(html|markdown|plain|moodle)\]/i);
+        if (formatMatch) {
+            question.formato = formatMatch[1].toLowerCase();
+            block = block.replace(formatMatch[0], '').trim();
         }
 
         // Extraer multimedia embebida (<img src="..."> o similares)
@@ -131,76 +172,225 @@ class GIFTParser {
         }
 
         // Dividir pregunta y respuestas
-        const braceIndex = block.indexOf('{');
+        const braceIndex = this.findFirstUnescapedBrace(block);
         if (braceIndex === -1) {
             throw new Error('Formato inválido: falta {');
         }
 
         question.pregunta = block.substring(0, braceIndex).trim();
-        const answersBlock = block.substring(braceIndex + 1, block.lastIndexOf('}')).trim();
+        const lastBraceIndex = this.findLastUnescapedBrace(block);
+        const answersBlock = block.substring(braceIndex + 1, lastBraceIndex).trim();
+
+        // Si la pregunta está vacía, usar el título como pregunta
+        if (!question.pregunta && question.titulo) {
+            question.pregunta = question.titulo;
+        }
 
         // Determinar tipo de pregunta y parsear respuestas
-        if (answersBlock === 'T' || answersBlock === 'TRUE' || answersBlock === 'F' || answersBlock === 'FALSE') {
-            // Verdadero/Falso
+        if (answersBlock === '') {
+            // Ensayo - no soportado en GIFTPlay (requiere evaluación manual)
+            question.tipo = 'essay';
+            question.opciones = [];
+            console.warn(`Pregunta ${index + 1}: Las preguntas de ensayo no son soportadas en GIFTPlay`);
+            return null; // Saltar pregunta de ensayo
+        } else if (answersBlock === 'T' || answersBlock === 'TRUE' || answersBlock.startsWith('T#') || answersBlock.startsWith('TRUE#')) {
+            // Verdadero/Falso - TRUE
             question.tipo = 'true-false';
-            const isTrue = answersBlock === 'T' || answersBlock === 'TRUE';
+            const feedback = this.extractTrueFalseFeedback(answersBlock);
             question.opciones = [
-                { texto: 'Verdadero', correcta: isTrue, peso: isTrue ? 100 : 0, feedback: '' },
-                { texto: 'Falso', correcta: !isTrue, peso: !isTrue ? 100 : 0, feedback: '' }
+                { texto: 'Verdadero', correcta: true, peso: 100, feedback: feedback.correct },
+                { texto: 'Falso', correcta: false, peso: 0, feedback: feedback.incorrect }
             ];
+        } else if (answersBlock === 'F' || answersBlock === 'FALSE' || answersBlock.startsWith('F#') || answersBlock.startsWith('FALSE#')) {
+            // Verdadero/Falso - FALSE
+            question.tipo = 'true-false';
+            const feedback = this.extractTrueFalseFeedback(answersBlock);
+            question.opciones = [
+                { texto: 'Verdadero', correcta: false, peso: 0, feedback: feedback.incorrect },
+                { texto: 'Falso', correcta: true, peso: 100, feedback: feedback.correct }
+            ];
+        } else if (answersBlock.startsWith('#')) {
+            // Pregunta numérica
+            question.tipo = 'numerical';
+            question.opciones = this.parseNumericalAnswers(answersBlock);
         } else {
-            // Opción múltiple
+            // Opción múltiple o respuesta corta
             question.opciones = this.parseAnswers(answersBlock);
+
+            // Extraer feedback general (####Feedback)
+            const feedbackMatch = answersBlock.match(/####([^}]+)/);
+            if (feedbackMatch) {
+                question.feedback_general = feedbackMatch[1].trim();
+            }
 
             // Determinar si es respuesta única o múltiple
             const correctCount = question.opciones.filter(o => o.correcta).length;
-            const hasWeights = question.opciones.some(o => o.peso > 0 && o.peso < 100);
+            const hasPartialWeights = question.opciones.some(o => o.peso > 0 && o.peso < 100);
 
-            if (correctCount > 1 || hasWeights) {
+            if (correctCount > 1 || hasPartialWeights) {
                 question.tipo = 'multiple-choice-multiple';
-            } else {
+            } else if (correctCount === 1) {
                 question.tipo = 'multiple-choice-single';
+            } else {
+                // Sin respuesta correcta marcada, podría ser respuesta corta
+                question.tipo = 'short-answer';
             }
-        }
-
-        // Extraer feedback general (####Feedback)
-        const feedbackMatch = answersBlock.match(/####(.+)$/);
-        if (feedbackMatch) {
-            question.feedback_general = feedbackMatch[1].trim();
         }
 
         return question;
     }
 
     /**
+     * Encuentra la primera llave { no escapada
+     */
+    findFirstUnescapedBrace(text) {
+        for (let i = 0; i < text.length; i++) {
+            if (text[i] === '{' && !this.isEscaped(text, i)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Encuentra la última llave } no escapada
+     */
+    findLastUnescapedBrace(text) {
+        for (let i = text.length - 1; i >= 0; i--) {
+            if (text[i] === '}' && !this.isEscaped(text, i)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Extrae el feedback de preguntas True/False
+     * Formato: {T#feedback incorrecto#feedback correcto}
+     */
+    extractTrueFalseFeedback(answersBlock) {
+        const parts = answersBlock.split('#');
+        return {
+            incorrect: parts[1] ? parts[1].trim() : '',
+            correct: parts[2] ? parts[2].trim() : ''
+        };
+    }
+
+    /**
+     * Parsea respuestas numéricas
+     */
+    parseNumericalAnswers(answersText) {
+        const answers = [];
+        // Formato: {#3:2} o {#1..5} o {#=1822:0 =%50%1822:2}
+
+        // Eliminar el # inicial
+        answersText = answersText.substring(1);
+
+        // Buscar respuestas con porcentaje
+        const answerRegex = /(%(\d+)%)?([0-9.]+)(?::([0-9.]+)|\.\.([0-9.]+))?(#[^=]+)?/g;
+        let match;
+
+        while ((match = answerRegex.exec(answersText)) !== null) {
+            const percentage = match[2] ? parseInt(match[2]) : 100;
+            const value = parseFloat(match[3]);
+            const tolerance = match[4] ? parseFloat(match[4]) : 0;
+            const maxValue = match[5] ? parseFloat(match[5]) : null;
+            const feedback = match[6] ? match[6].substring(1).trim() : '';
+
+            answers.push({
+                texto: maxValue ? `${value}..${maxValue}` : `${value}±${tolerance}`,
+                correcta: percentage > 0,
+                peso: percentage,
+                feedback: feedback,
+                valor: value,
+                tolerancia: tolerance,
+                valorMax: maxValue
+            });
+        }
+
+        return answers;
+    }
+
+    /**
      * Parsea las respuestas de una pregunta
+     * Mejorado para manejar feedback con # correctamente
      */
     parseAnswers(answersText) {
         const answers = [];
 
-        // Regex para capturar cada respuesta
-        // Formato: ~%peso%texto # feedback o =texto # feedback
-        const answerRegex = /([=~])(%(-?\d+)%)?((?:[^#~=]|\\[#~=])+)(#(.+?))?(?=[~=]|$)/g;
+        // Primero, extraer y eliminar el feedback general si existe
+        answersText = answersText.replace(/####[^}]*$/, '');
 
-        let match;
-        while ((match = answerRegex.exec(answersText)) !== null) {
-            const marker = match[1];           // = o ~
-            const peso = match[3];             // número del peso (opcional)
-            let texto = match[4].trim();       // texto de la respuesta
-            const feedback = match[6] ? match[6].trim() : ''; // feedback (opcional)
+        // Dividir por marcadores de respuesta (= o ~) que no estén escapados
+        const parts = [];
+        let current = '';
+        let i = 0;
+
+        while (i < answersText.length) {
+            const char = answersText[i];
+
+            if ((char === '=' || char === '~') && !this.isEscaped(answersText, i)) {
+                if (current.trim()) {
+                    parts.push(current);
+                }
+                current = char;
+            } else {
+                current += char;
+            }
+            i++;
+        }
+        if (current.trim()) {
+            parts.push(current);
+        }
+
+        // Parsear cada parte
+        for (let part of parts) {
+            part = part.trim();
+            if (!part || part === '=' || part === '~') continue;
+
+            const marker = part[0]; // = o ~
+            part = part.substring(1); // Remover el marcador
+
+            // Extraer porcentaje si existe: %50%
+            let peso = null;
+            const pesoMatch = part.match(/^%(-?\d+(?:\.\d+)?)%/);
+            if (pesoMatch) {
+                peso = parseFloat(pesoMatch[1]);
+                part = part.substring(pesoMatch[0].length);
+            }
+
+            // Separar texto de feedback (último # no escapado)
+            let texto = part;
+            let feedback = '';
+
+            // Buscar el último # no escapado
+            for (let j = part.length - 1; j >= 0; j--) {
+                if (part[j] === '#' && !this.isEscaped(part, j)) {
+                    texto = part.substring(0, j).trim();
+                    feedback = part.substring(j + 1).trim();
+                    break;
+                }
+            }
 
             // Desescapar caracteres especiales
             texto = this.unescapeGIFT(texto);
+            feedback = this.unescapeGIFT(feedback);
 
+            // Determinar si es correcta y el peso
             let correcta = false;
             let weight = 0;
 
             if (marker === '=') {
                 correcta = true;
-                weight = 100;
-            } else if (peso !== undefined) {
-                weight = parseInt(peso);
-                correcta = weight > 0;
+                weight = peso !== null ? peso : 100;
+            } else if (marker === '~') {
+                if (peso !== null) {
+                    weight = peso;
+                    correcta = weight > 0;
+                } else {
+                    weight = 0;
+                    correcta = false;
+                }
             }
 
             answers.push({
@@ -216,16 +406,18 @@ class GIFTParser {
 
     /**
      * Desescapa caracteres especiales de GIFT
+     * El orden es importante: primero \\ luego los demás
      */
     unescapeGIFT(text) {
         return text
+            .replace(/\\\\/g, '\x00') // Marcador temporal para \\
             .replace(/\\~/g, '~')
             .replace(/\\=/g, '=')
             .replace(/\\#/g, '#')
             .replace(/\\{/g, '{')
             .replace(/\\}/g, '}')
             .replace(/\\:/g, ':')
-            .replace(/\\\\/g, '\\');
+            .replace(/\x00/g, '\\'); // Restaurar \\ como \
     }
 
     /**
@@ -250,11 +442,13 @@ class GIFTParser {
                 errors.push(`Pregunta ${index + 1}: No tiene tipo definido`);
             }
 
-            if (q.opciones.length === 0) {
+            // Preguntas de ensayo no necesitan opciones
+            if (q.tipo !== 'essay' && q.opciones.length === 0) {
                 errors.push(`Pregunta ${index + 1}: No tiene opciones`);
             }
 
-            if (q.tipo !== 'true-false' && !q.opciones.some(o => o.correcta)) {
+            // Verificar respuesta correcta solo para tipos que la necesitan
+            if (!['essay', 'true-false'].includes(q.tipo) && !q.opciones.some(o => o.correcta)) {
                 errors.push(`Pregunta ${index + 1}: No tiene ninguna respuesta correcta`);
             }
         });

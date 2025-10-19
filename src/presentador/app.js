@@ -30,14 +30,27 @@ function inicializarReferenciasDOM() {
     elementos.pantallaResultadoPregunta = document.getElementById('pantalla-resultado-pregunta');
     elementos.pantallaResultadosFinales = document.getElementById('pantalla-resultados-finales');
 
-    // Inicio
+    // Inicio - Toggle y secciones
+    elementos.btnModeFile = document.getElementById('btn-mode-file');
+    elementos.btnModeText = document.getElementById('btn-mode-text');
+    elementos.fileUploadSection = document.getElementById('file-upload-section');
+    elementos.textInputSection = document.getElementById('text-input-section');
+
+    // Inicio - Inputs
     elementos.giftFileInput = document.getElementById('gift-file-input');
+    elementos.giftTextInput = document.getElementById('gift-text-input');
+    elementos.btnProcessText = document.getElementById('btn-process-text');
     elementos.fileInfo = document.getElementById('file-info');
     elementos.fileName = document.getElementById('file-name');
     elementos.fileQuestions = document.getElementById('file-questions');
     elementos.tiempoPregunta = document.getElementById('tiempo-pregunta');
     elementos.btnEmpezarSesion = document.getElementById('btn-empezar-sesion');
     elementos.errorMessage = document.getElementById('error-message');
+
+    // Visualizador de preguntas
+    elementos.questionsPreview = document.getElementById('questions-preview');
+    elementos.questionsList = document.getElementById('questions-list');
+    elementos.btnTogglePreview = document.getElementById('btn-toggle-preview');
 
     // Lobby
     elementos.codigoPartida = document.getElementById('codigo-partida');
@@ -79,9 +92,17 @@ function inicializarReferenciasDOM() {
  * Inicializa eventos
  */
 function inicializarEventos() {
-    // Inicio
+    // Inicio - Toggle
+    elementos.btnModeFile.addEventListener('click', () => cambiarModoEntrada('file'));
+    elementos.btnModeText.addEventListener('click', () => cambiarModoEntrada('text'));
+
+    // Inicio - Inputs
     elementos.giftFileInput.addEventListener('change', manejarArchivoGIFT);
+    elementos.btnProcessText.addEventListener('click', manejarTextoGIFT);
     elementos.btnEmpezarSesion.addEventListener('click', empezarSesion);
+
+    // Visualizador
+    elementos.btnTogglePreview.addEventListener('click', togglePreview);
 
     // Lobby
     elementos.btnCopiarUrl.addEventListener('click', copiarURL);
@@ -115,6 +136,29 @@ function inicializarInstancias() {
 }
 
 /**
+ * Cambia entre modo de subir archivo y pegar texto
+ */
+function cambiarModoEntrada(modo) {
+    if (modo === 'file') {
+        elementos.btnModeFile.classList.add('active');
+        elementos.btnModeText.classList.remove('active');
+        elementos.fileUploadSection.classList.remove('hidden');
+        elementos.textInputSection.classList.add('hidden');
+    } else {
+        elementos.btnModeText.classList.add('active');
+        elementos.btnModeFile.classList.remove('active');
+        elementos.textInputSection.classList.remove('hidden');
+        elementos.fileUploadSection.classList.add('hidden');
+    }
+
+    // Limpiar estado
+    elementos.fileInfo.classList.add('hidden');
+    elementos.questionsPreview.classList.add('hidden');
+    elementos.btnEmpezarSesion.disabled = true;
+    ocultarError();
+}
+
+/**
  * Maneja la carga del archivo GIFT
  */
 async function manejarArchivoGIFT(event) {
@@ -123,21 +167,47 @@ async function manejarArchivoGIFT(event) {
 
     try {
         const texto = await file.text();
+        procesarTextoGIFT(texto, file.name);
+    } catch (error) {
+        console.error('Error al leer archivo GIFT:', error);
+        mostrarError('Error al leer el archivo: ' + error.message);
+    }
+}
+
+/**
+ * Maneja el texto GIFT pegado directamente
+ */
+function manejarTextoGIFT() {
+    const texto = elementos.giftTextInput.value.trim();
+
+    if (!texto) {
+        mostrarError('Por favor, pega el texto en formato GIFT');
+        return;
+    }
+
+    procesarTextoGIFT(texto, 'Texto pegado');
+}
+
+/**
+ * Procesa el texto GIFT (común para archivo y texto pegado)
+ */
+function procesarTextoGIFT(texto, nombre) {
+    try {
         const preguntas = giftParser.parse(texto);
 
         if (preguntas.length === 0) {
-            mostrarError('El archivo no contiene preguntas válidas');
+            mostrarError('El texto no contiene preguntas válidas en formato GIFT');
             return;
         }
 
         const validacion = giftParser.validate();
         if (!validacion.valid) {
-            mostrarError('Errores en el archivo GIFT:\\n' + validacion.errors.join('\\n'));
+            mostrarError('Errores en el formato GIFT:\n' + validacion.errors.join('\n'));
             return;
         }
 
-        // Mostrar info del archivo
-        elementos.fileName.textContent = file.name;
+        // Mostrar info del archivo/texto
+        elementos.fileName.textContent = nombre;
         elementos.fileQuestions.textContent = `${preguntas.length} pregunta(s)`;
         elementos.fileInfo.classList.remove('hidden');
         elementos.btnEmpezarSesion.disabled = false;
@@ -145,11 +215,164 @@ async function manejarArchivoGIFT(event) {
         // Guardar preguntas
         gameState.cargarCuestionario(preguntas, parseInt(elementos.tiempoPregunta.value));
 
+        // Mostrar visualizador de preguntas
+        mostrarVisualizadorPreguntas(preguntas);
+
         ocultarError();
     } catch (error) {
-        console.error('Error al procesar archivo GIFT:', error);
-        mostrarError('Error al procesar el archivo: ' + error.message);
+        console.error('Error al procesar texto GIFT:', error);
+        mostrarError('Error al procesar el texto: ' + error.message);
     }
+}
+
+/**
+ * Muestra el visualizador de preguntas
+ */
+function mostrarVisualizadorPreguntas(preguntas) {
+    elementos.questionsPreview.classList.remove('hidden');
+    renderizarListaPreguntas(preguntas);
+}
+
+/**
+ * Renderiza la lista de preguntas en el visualizador
+ */
+function renderizarListaPreguntas(preguntas) {
+    elementos.questionsList.innerHTML = preguntas.map((pregunta, index) => {
+        const titulo = pregunta.titulo || pregunta.pregunta.substring(0, 60) + (pregunta.pregunta.length > 60 ? '...' : '');
+        const tipo = obtenerNombreTipo(pregunta.tipo);
+        const tipoClass = pregunta.tipo;
+
+        return `
+            <div class="question-item" draggable="true" data-index="${index}">
+                <span class="drag-handle">⋮⋮</span>
+                <span class="question-number">${index + 1}</span>
+                <div class="question-info">
+                    <div class="question-title">${titulo}</div>
+                    <div class="question-type">
+                        <span class="type-badge ${tipoClass}">${tipo}</span>
+                        <span>${pregunta.opciones.length} opción(es)</span>
+                    </div>
+                </div>
+                <div class="question-controls">
+                    <button class="btn-reorder" onclick="moverPregunta(${index}, -1)" ${index === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="btn-reorder" onclick="moverPregunta(${index}, 1)" ${index === preguntas.length - 1 ? 'disabled' : ''}>▼</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Agregar eventos de drag and drop
+    agregarEventosDragDrop();
+}
+
+/**
+ * Obtiene el nombre legible del tipo de pregunta
+ */
+function obtenerNombreTipo(tipo) {
+    const tipos = {
+        'true-false': 'V/F',
+        'multiple-choice-single': 'Opción Única',
+        'multiple-choice-multiple': 'Opción Múltiple',
+        'short-answer': 'Respuesta Corta',
+        'numerical': 'Numérica',
+        'essay': 'Ensayo'
+    };
+    return tipos[tipo] || tipo;
+}
+
+/**
+ * Mueve una pregunta arriba o abajo
+ */
+function moverPregunta(index, direccion) {
+    const preguntas = gameState.cuestionario;
+    const newIndex = index + direccion;
+
+    if (newIndex < 0 || newIndex >= preguntas.length) return;
+
+    // Intercambiar preguntas
+    [preguntas[index], preguntas[newIndex]] = [preguntas[newIndex], preguntas[index]];
+
+    // Re-renderizar
+    renderizarListaPreguntas(preguntas);
+}
+
+/**
+ * Agrega eventos de drag and drop a los items
+ */
+function agregarEventosDragDrop() {
+    const items = elementos.questionsList.querySelectorAll('.question-item');
+
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragenter', handleDragEnter);
+        item.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+
+    // Remover todas las clases drag-over
+    const items = elementos.questionsList.querySelectorAll('.question-item');
+    items.forEach(item => item.classList.remove('drag-over'));
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    if (draggedElement !== this) {
+        const fromIndex = parseInt(draggedElement.dataset.index);
+        const toIndex = parseInt(this.dataset.index);
+
+        // Mover en el array
+        const preguntas = gameState.cuestionario;
+        const [removed] = preguntas.splice(fromIndex, 1);
+        preguntas.splice(toIndex, 0, removed);
+
+        // Re-renderizar
+        renderizarListaPreguntas(preguntas);
+    }
+
+    return false;
+}
+
+/**
+ * Toggle del visualizador (colapsar/expandir)
+ */
+function togglePreview() {
+    elementos.questionsPreview.classList.toggle('collapsed');
 }
 
 /**

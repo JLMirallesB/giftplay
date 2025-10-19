@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIFTPlay - Jugador</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/jugador.css">
+    <!-- KaTeX para fórmulas matemáticas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Pantalla de Entrada -->
+        <div id="pantalla-entrada" class="pantalla active">
+            <div class="container">
+                <h1 class="logo">🎮 GIFTPlay</h1>
+
+                <div class="form-section">
+                    <label for="codigo-input" data-i18n-key="game_code">Código de la partida:</label>
+                    <input type="text" id="codigo-input" class="input-code" placeholder="ABCDE" maxlength="5">
+
+                    <label for="nombre-input" data-i18n-key="your_name">Tu nombre:</label>
+                    <input type="text" id="nombre-input" class="input-name" placeholder="Escribe tu nombre" maxlength="20">
+
+                    <label data-i18n-key="choose_emoji">Elige tu emoji:</label>
+                    <div id="emoji-selector" class="emoji-grid">
+                        <button class="emoji-btn" data-emoji="😀">😀</button>
+                        <button class="emoji-btn" data-emoji="😎">😎</button>
+                        <button class="emoji-btn" data-emoji="🤓">🤓</button>
+                        <button class="emoji-btn" data-emoji="😺">😺</button>
+                        <button class="emoji-btn" data-emoji="🐶">🐶</button>
+                        <button class="emoji-btn" data-emoji="🦊">🦊</button>
+                        <button class="emoji-btn" data-emoji="🐼">🐼</button>
+                        <button class="emoji-btn" data-emoji="🦁">🦁</button>
+                        <button class="emoji-btn" data-emoji="🐸">🐸</button>
+                        <button class="emoji-btn" data-emoji="🦄">🦄</button>
+                        <button class="emoji-btn" data-emoji="🚀">🚀</button>
+                        <button class="emoji-btn" data-emoji="⭐">⭐</button>
+                        <button class="emoji-btn" data-emoji="🎮">🎮</button>
+                        <button class="emoji-btn" data-emoji="🎯">🎯</button>
+                        <button class="emoji-btn" data-emoji="🏆">🏆</button>
+                        <button class="emoji-btn" data-emoji="💎">💎</button>
+                    </div>
+                    <div id="emoji-selected" class="emoji-selected"></div>
+                </div>
+
+                <button id="btn-unirse" class="btn btn-primary" disabled data-i18n-key="join_game">¡A jugar!</button>
+
+                <div id="error-message" class="error-message hidden"></div>
+            </div>
+
+            <!-- Selector de idioma -->
+            <div class="language-selector">
+                <div id="lang-selector"></div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Lobby (Esperando) -->
+        <div id="pantalla-lobby" class="pantalla">
+            <div class="container">
+                <h2 data-i18n-key="waiting_to_start">Esperando a que empiece el juego...</h2>
+
+                <div class="player-info">
+                    <div id="player-display" class="player-display"></div>
+                </div>
+
+                <div class="connected-info">
+                    <p><span data-i18n-key="players_connected">Jugadores conectados:</span> <span id="players-count">1</span></p>
+                </div>
+
+                <div class="waiting-animation">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Pregunta -->
+        <div id="pantalla-pregunta" class="pantalla">
+            <div class="container">
+                <div class="question-header">
+                    <div class="question-number">
+                        <span data-i18n-key="question">Pregunta</span> <span id="num-pregunta">1</span> / <span id="total-preguntas">10</span>
+                    </div>
+                    <div class="timer">
+                        <span id="tiempo-restante">30</span>s
+                    </div>
+                </div>
+
+                <div id="multimedia-container" class="multimedia-container hidden"></div>
+
+                <div class="question-text" id="texto-pregunta"></div>
+
+                <div class="answers-container" id="answers-container"></div>
+
+                <div id="answer-sent-message" class="answer-sent hidden">
+                    ✅ <span data-i18n-key="answer_sent">Respuesta enviada - Esperando resultados...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Resultado -->
+        <div id="pantalla-resultado" class="pantalla">
+            <div class="container">
+                <div id="result-icon" class="result-icon"></div>
+
+                <div id="result-message" class="result-message"></div>
+
+                <div class="points-info">
+                    <div class="points-earned">
+                        <span data-i18n-key="points_earned">Puntos ganados:</span>
+                        <span id="puntos-ganados" class="points-value">0</span>
+                    </div>
+                    <div class="points-total">
+                        <span data-i18n-key="total_points">Puntos totales:</span>
+                        <span id="puntos-totales" class="points-value">0</span>
+                    </div>
+                </div>
+
+                <div id="feedback-container" class="feedback-container hidden"></div>
+
+                <div class="waiting-next">
+                    <p data-i18n-key="waiting_next_question">Esperando siguiente pregunta...</p>
+                    <div class="spinner-small"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Resultados Finales -->
+        <div id="pantalla-final" class="pantalla">
+            <div class="container">
+                <h1 data-i18n-key="game_finished">🎉 ¡Juego Terminado!</h1>
+
+                <div class="final-position">
+                    <div class="position-badge" id="position-badge"></div>
+                </div>
+
+                <div class="final-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-puntos">0</div>
+                        <div class="stat-label" data-i18n-key="final_points">Puntos Finales</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-correctas">0</div>
+                        <div class="stat-label" data-i18n-key="correct_answers">Respuestas Correctas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-porcentaje">0%</div>
+                        <div class="stat-label" data-i18n-key="accuracy">Precisión</div>
+                    </div>
+                </div>
+
+                <div class="final-message" id="final-message"></div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Error/Expulsado -->
+        <div id="pantalla-error" class="pantalla">
+            <div class="container">
+                <div class="error-icon">❌</div>
+                <h2 data-i18n-key="connection_error">Error de Conexión</h2>
+                <p id="error-text"></p>
+                <button id="btn-reintentar" class="btn btn-primary" data-i18n-key="retry">Reintentar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts externos -->
+    <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <!-- Scripts de la aplicación -->
+    <script src="src/shared/i18n.js"></script>
+    <script src="src/shared/protocol.js"></script>
+    <script src="src/jugador/peer-client.js"></script>
+    <script src="src/jugador/app.js"></script>
+</body>
+</html>

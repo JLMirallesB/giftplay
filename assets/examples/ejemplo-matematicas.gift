@@ -1,0 +1,50 @@
+// Archivo de ejemplo GIFT - Matemáticas con LaTeX
+// GIFTPlay - Preguntas de matemáticas
+
+// @time: 60
+::Ecuaciones:: ¿Cuál es el valor de $x$ en la ecuación $\dfrac{2x - 4}{3} = 6$? {
+    ~$x = \sqrt{25}$
+    ~$x = \dfrac{21}{3}$
+    ~$x = 2^3 + 3$
+    =$x = 11$
+}
+
+::Geometría:: El área de un círculo de radio $r$ se calcula con la fórmula $A = \pi r^2$. {T}
+
+::Álgebra:: Simplifica la expresión: $\dfrac{x^2 - 9}{x - 3}$ (cuando $x \neq 3$) {
+    ~$x - 3$
+    ~$x + 9$
+    =$x + 3$
+    ~$x^2 + 3$
+}
+
+::Trigonometría:: ¿Cuánto vale $\sin(90°)$? {
+    ~0
+    =1
+    ~$\dfrac{1}{2}$
+    ~$\sqrt{2}$
+}
+
+::Cálculo:: La derivada de $f(x) = x^3$ es: {
+    ~$x^2$
+    ~$\dfrac{x^4}{4}$
+    =$3x^2$
+    ~$3x$
+}
+
+// @time: 90
+::Sistemas de ecuaciones:: ¿Qué afirmaciones son correctas sobre el sistema? $$\begin{cases} x + y = 5 \\ x - y = 1 \end{cases}$$ {
+    ~%50%La solución es $x = 3, y = 2$
+    ~%50%Se puede resolver por el método de sustitución
+    ~%-100%No tiene solución
+    ~%-100%Tiene infinitas soluciones
+}
+
+::Probabilidad:: Al lanzar un dado justo, la probabilidad de obtener un número par es $\dfrac{1}{2}$. {T}
+
+::Funciones:: ¿Cuál es la pendiente de la recta $y = 3x + 5$? {
+    ~5
+    =3
+    ~$\dfrac{5}{3}$
+    ~8
+}

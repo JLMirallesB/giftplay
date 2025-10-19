@@ -1,0 +1,48 @@
+// Archivo de ejemplo GIFT básico
+// GIFTPlay - Preguntas de cultura general
+
+::Geografía:: ¿Cuál es la capital de Francia? {
+    ~Sevilla
+    =París
+    ~Roma
+    ~Lisboa
+}
+
+::Historia:: ¿En qué año se descubrió América? {
+    ~1490 # Muy cerca, pero no es correcto
+    =1492 # ¡Exacto! Cristóbal Colón llegó a América en 1492
+    ~1500 # Demasiado tarde
+    ~1520 # Incorrecto
+}
+
+::Ciencia:: La Tierra gira alrededor del Sol. {T}
+
+::Matemáticas:: ¿Cuánto es 5 × 8? {
+    ~30
+    =40
+    ~45
+    ~50
+}
+
+::Literatura:: ¿Quién escribió "Don Quijote de la Mancha"? {
+    ~William Shakespeare
+    ~Gabriel García Márquez
+    =Miguel de Cervantes
+    ~Pablo Neruda
+}
+
+::Biología:: ¿Qué afirmaciones sobre la fotosíntesis son correctas? {
+    ~%50%Las plantas captan CO₂ y liberan O₂
+    ~%50%Es un proceso que transforma energía luminosa en química
+    ~%-100%Las plantas realizan fotosíntesis solo de noche
+    ~%-100%La fotosíntesis ocurre en todas las partes de la planta
+}
+
+::Arte:: Los dinosaurios se extinguieron hace aproximadamente 250 millones de años. {F}
+
+::Deportes:: ¿En qué deporte se utiliza una raqueta? {
+    ~Fútbol
+    ~Baloncesto
+    =Tenis
+    ~Natación
+}

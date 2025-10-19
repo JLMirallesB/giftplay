@@ -1,0 +1,339 @@
+/**
+ * Estilos específicos del Presentador
+ * GIFTPlay
+ */
+
+/* Pantalla de Inicio */
+.upload-section {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.file-label {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow);
+}
+
+.file-label:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.file-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--color-bg-light);
+    border-radius: var(--border-radius);
+}
+
+.config-section {
+    margin: 2rem 0;
+}
+
+.config-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+/* Lobby */
+.session-info {
+    margin: 2rem 0;
+}
+
+.game-code {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.code {
+    display: inline-block;
+    font-size: 3rem;
+    font-weight: bold;
+    letter-spacing: 0.3rem;
+    color: var(--color-primary);
+    background: var(--color-bg-light);
+    padding: 1rem 2rem;
+    border-radius: var(--border-radius);
+    margin: 1rem 0;
+}
+
+.qr-container {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+#qr-code {
+    display: inline-block;
+    padding: 1rem;
+    background: white;
+    border-radius: var(--border-radius);
+}
+
+.url-container {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 600px;
+}
+
+#url-partida {
+    flex: 1;
+}
+
+.players-section {
+    margin: 3rem 0;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.player-card {
+    background: var(--color-bg-light);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
+}
+
+.player-card:hover {
+    transform: translateY(-2px);
+}
+
+.player-card.disconnected {
+    opacity: 0.5;
+}
+
+.player-name {
+    font-weight: 600;
+}
+
+.player-points {
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+/* Pantalla de Pregunta */
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--color-bg-light);
+    border-radius: var(--border-radius);
+}
+
+.timer {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--color-warning);
+}
+
+.answers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.answer-option {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--color-bg-light);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.answer-letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.answer-text {
+    flex: 1;
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.player-responses {
+    margin: 3rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-light);
+    border-radius: var(--border-radius);
+}
+
+.responses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.response-item {
+    padding: 0.5rem;
+    background: var(--color-bg-card);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.response-item.answered {
+    background: var(--color-success);
+}
+
+/* Resultado de Pregunta */
+.correct-answer-section {
+    margin: 2rem 0;
+}
+
+.correct-answer-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-success);
+    border-radius: var(--border-radius);
+    margin: 0.5rem 0;
+}
+
+.statistics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.stat-card {
+    background: var(--color-bg-light);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.stat-value {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.stat-label {
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+}
+
+.leaderboard {
+    margin: 2rem 0;
+}
+
+.leaderboard-item {
+    display: grid;
+    grid-template-columns: 50px 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-bg-light);
+    border-radius: var(--border-radius);
+    margin: 0.5rem 0;
+}
+
+.leaderboard-item .position {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.leaderboard-item .player-score {
+    color: var(--color-primary);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* Resultados Finales */
+.podium {
+    margin: 3rem 0;
+}
+
+#podium-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.podium-place {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: var(--color-bg-light);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+}
+
+.podium-place .medal {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.podium-place .player-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+}
+
+.podium-place .player-score {
+    color: var(--color-primary);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+@media (max-width: 768px) {
+    .answers-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .code {
+        font-size: 2rem;
+    }
+
+    #podium-container {
+        flex-direction: column;
+        align-items: center;
+    }
+}

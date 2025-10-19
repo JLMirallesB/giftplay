@@ -523,6 +523,9 @@ function mostrarPregunta() {
  * Maneja la respuesta de un jugador
  */
 function manejarRespuestaJugador(jugador) {
+    // CRÍTICO: Registrar la respuesta en gameState
+    gameState.registrarRespuesta(jugador.peerId, jugador.respuestaActual, jugador.tiempoRespuesta);
+
     // Actualizar contador
     const numRespuestas = gameState.getNumeroRespuestas();
     elementos.responsesCount.textContent = numRespuestas;

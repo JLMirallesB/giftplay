@@ -78,10 +78,12 @@ class GIFTParser {
             }
 
             // Contar llaves para saber si estamos dentro de respuestas
-            for (let char of line) {
-                if (char === '{' && !this.isEscaped(line, line.indexOf(char))) {
+            // CORREGIDO: usar índice del bucle en lugar de indexOf (que retorna siempre la primera ocurrencia)
+            for (let charIndex = 0; charIndex < line.length; charIndex++) {
+                const char = line[charIndex];
+                if (char === '{' && !this.isEscaped(line, charIndex)) {
                     braceDepth++;
-                } else if (char === '}' && !this.isEscaped(line, line.indexOf(char))) {
+                } else if (char === '}' && !this.isEscaped(line, charIndex)) {
                     braceDepth--;
                 }
             }

@@ -24,29 +24,8 @@ class PeerManager {
         return new Promise((resolve, reject) => {
             this.gameId = existingGameId || this.generateGameCode(5);
 
-            const peerConfig = {
-                host: '0.peerjs.com',
-                port: 443,
-                path: '/',
-                secure: true,
-                debug: 2,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.relay.metered.ca:80' },
-                        {
-                            urls: 'turn:standard.relay.metered.ca:80',
-                            username: '9745e21b303bdaea589c29bc',
-                            credential: 'UgG56tBqCEGNjzLY'
-                        },
-                        {
-                            urls: 'turn:standard.relay.metered.ca:443?transport=tcp',
-                            username: '9745e21b303bdaea589c29bc',
-                            credential: 'UgG56tBqCEGNjzLY'
-                        }
-                    ],
-                    iceTransportPolicy: 'all'
-                }
-            };
+            // Usar configuración centralizada (sin credenciales hardcodeadas)
+            const peerConfig = PeerConfig.getFullConfig();
 
             this.peer = new Peer(this.gameId, peerConfig);
 

@@ -8,6 +8,7 @@ class PeerClient {
         this.peer = null;
         this.conn = null;
         this.gameId = null;
+        this.nombreJugador = null;
         this.onJoinConfirmedCallback = null;
         this.onGameStartedCallback = null;
         this.onQuestionCallback = null;
@@ -19,6 +20,16 @@ class PeerClient {
         this.onKickedCallback = null;
         this.onErrorCallback = null;
         this.onDisconnectedCallback = null;
+        this.onReconnectingCallback = null;
+        this.onReconnectedCallback = null;
+
+        // Configuración de reconexión
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 10;
+        this.reconnectDelay = 1000; // ms inicial
+        this.maxReconnectDelay = 10000; // ms máximo
+        this.isReconnecting = false;
+        this.reconnectTimeout = null;
     }
 
     /**
@@ -30,30 +41,10 @@ class PeerClient {
     async connect(gameId, nombreJugador) {
         return new Promise((resolve, reject) => {
             this.gameId = gameId;
+            this.nombreJugador = nombreJugador;
 
-            const peerConfig = {
-                host: '0.peerjs.com',
-                port: 443,
-                path: '/',
-                secure: true,
-                debug: 2,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.relay.metered.ca:80' },
-                        {
-                            urls: 'turn:standard.relay.metered.ca:80',
-                            username: '9745e21b303bdaea589c29bc',
-                            credential: 'UgG56tBqCEGNjzLY'
-                        },
-                        {
-                            urls: 'turn:standard.relay.metered.ca:443?transport=tcp',
-                            username: '9745e21b303bdaea589c29bc',
-                            credential: 'UgG56tBqCEGNjzLY'
-                        }
-                    ],
-                    iceTransportPolicy: 'all'
-                }
-            };
+            // Usar configuración centralizada (sin credenciales hardcodeadas)
+            const peerConfig = PeerConfig.getFullConfig();
 
             // Crear peer con ID aleatorio
             this.peer = new Peer(null, peerConfig);
@@ -101,11 +92,104 @@ class PeerClient {
 
             this.peer.on('disconnected', () => {
                 console.log('Peer desconectado');
-                if (this.onDisconnectedCallback) {
-                    this.onDisconnectedCallback();
-                }
+                // Intentar reconexión automática
+                this.attemptReconnect();
             });
         });
+    }
+
+    /**
+     * Intenta reconectar automáticamente con backoff exponencial
+     */
+    attemptReconnect() {
+        if (this.isReconnecting) return;
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.log('Máximo de intentos de reconexión alcanzado');
+            this.isReconnecting = false;
+            if (this.onDisconnectedCallback) {
+                this.onDisconnectedCallback();
+            }
+            return;
+        }
+
+        this.isReconnecting = true;
+        this.reconnectAttempts++;
+
+        // Calcular delay con backoff exponencial
+        const delay = Math.min(
+            this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1),
+            this.maxReconnectDelay
+        );
+
+        console.log(`Intentando reconexión ${this.reconnectAttempts}/${this.maxReconnectAttempts} en ${delay}ms`);
+
+        if (this.onReconnectingCallback) {
+            this.onReconnectingCallback(this.reconnectAttempts, this.maxReconnectAttempts);
+        }
+
+        this.reconnectTimeout = setTimeout(async () => {
+            try {
+                // Intentar reconectar el peer
+                if (this.peer && !this.peer.destroyed) {
+                    this.peer.reconnect();
+                } else {
+                    // Si el peer está destruido, crear uno nuevo
+                    await this.connect(this.gameId, this.nombreJugador);
+                }
+
+                // Reconectar al host
+                if (this.peer && this.peer.open) {
+                    this.conn = this.peer.connect(this.gameId, { reliable: true });
+
+                    this.conn.on('open', () => {
+                        console.log('Reconectado exitosamente al presentador');
+                        this.isReconnecting = false;
+                        this.reconnectAttempts = 0;
+
+                        // Re-enviar join
+                        this.send(Protocol.createJoinMessage(this.nombreJugador));
+
+                        if (this.onReconnectedCallback) {
+                            this.onReconnectedCallback();
+                        }
+                    });
+
+                    this.conn.on('data', (data) => {
+                        this.handleHostMessage(data);
+                    });
+
+                    this.conn.on('close', () => {
+                        console.log('Conexión con presentador cerrada tras reconexión');
+                        this.attemptReconnect();
+                    });
+
+                    this.conn.on('error', (err) => {
+                        console.error('Error en reconexión:', err);
+                        this.isReconnecting = false;
+                        this.attemptReconnect();
+                    });
+                } else {
+                    this.isReconnecting = false;
+                    this.attemptReconnect();
+                }
+            } catch (error) {
+                console.error('Error durante reconexión:', error);
+                this.isReconnecting = false;
+                this.attemptReconnect();
+            }
+        }, delay);
+    }
+
+    /**
+     * Cancela intentos de reconexión
+     */
+    cancelReconnect() {
+        if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+        }
+        this.isReconnecting = false;
+        this.reconnectAttempts = 0;
     }
 
     /**
@@ -209,6 +293,7 @@ class PeerClient {
      * Cierra la conexión
      */
     disconnect() {
+        this.cancelReconnect();
         if (this.conn) {
             this.conn.close();
         }
@@ -260,5 +345,13 @@ class PeerClient {
 
     onDisconnected(callback) {
         this.onDisconnectedCallback = callback;
+    }
+
+    onReconnecting(callback) {
+        this.onReconnectingCallback = callback;
+    }
+
+    onReconnected(callback) {
+        this.onReconnectedCallback = callback;
     }
 }

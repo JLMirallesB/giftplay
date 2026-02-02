@@ -192,9 +192,9 @@ function manejarPregunta(payload) {
     elementos.totalPreguntas.textContent = payload.totalPreguntas;
     elementos.textoPregunta.innerHTML = renderizarTexto(payload.pregunta);
 
-    // Multimedia
+    // Multimedia (sanitizado para prevenir XSS)
     if (payload.multimedia) {
-        elementos.multimediaContainer.innerHTML = payload.multimedia;
+        elementos.multimediaContainer.innerHTML = Sanitize.sanitizeMultimedia(payload.multimedia);
         elementos.multimediaContainer.classList.remove('hidden');
     } else {
         elementos.multimediaContainer.classList.add('hidden');
@@ -335,9 +335,9 @@ function manejarResultado(payload) {
     elementos.puntosTotales.textContent = payload.puntosTotal;
     puntosTotales = payload.puntosTotal;
 
-    // Feedback
+    // Feedback (sanitizado para prevenir XSS)
     if (payload.feedback) {
-        elementos.feedbackContainer.innerHTML = `<p>${payload.feedback}</p>`;
+        elementos.feedbackContainer.innerHTML = `<p>${Sanitize.escapeHTML(payload.feedback)}</p>`;
         elementos.feedbackContainer.classList.remove('hidden');
     } else {
         elementos.feedbackContainer.classList.add('hidden');

@@ -444,9 +444,10 @@ function actualizarListaJugadores() {
     const jugadores = peerManager.getPlayers();
     elementos.playerCount.textContent = jugadores.length;
 
+    // Sanitizar nombres de jugadores para prevenir XSS
     elementos.playersList.innerHTML = jugadores.map(j => `
         <div class="player-card ${!j.conectado ? 'disconnected' : ''}">
-            <span class="player-name">${j.nombre}</span>
+            <span class="player-name">${Sanitize.sanitizePlayerName(j.nombre)}</span>
             <span class="player-points">${j.puntos} pts</span>
         </div>
     `).join('');
@@ -481,9 +482,9 @@ function mostrarPregunta() {
     elementos.numPreguntaTotal.textContent = totalPreguntas;
     elementos.textoPregunta.innerHTML = renderizarTexto(pregunta.pregunta);
 
-    // Multimedia
+    // Multimedia (sanitizado para prevenir XSS)
     if (pregunta.multimedia) {
-        elementos.multimediaContainer.innerHTML = pregunta.multimedia;
+        elementos.multimediaContainer.innerHTML = Sanitize.sanitizeMultimedia(pregunta.multimedia);
         elementos.multimediaContainer.classList.remove('hidden');
     } else {
         elementos.multimediaContainer.classList.add('hidden');
@@ -530,13 +531,13 @@ function manejarRespuestaJugador(jugador) {
     const numRespuestas = gameState.getNumeroRespuestas();
     elementos.responsesCount.textContent = numRespuestas;
 
-    // Actualizar lista
+    // Actualizar lista (nombres sanitizados)
     elementos.responsesList.innerHTML = Array.from(peerManager.getPlayers())
         .map(j => {
             const haRespondido = gameState.haRespondido(j.peerId);
             return `
                 <div class="response-item ${haRespondido ? 'answered' : ''}">
-                    <span>${j.nombre}</span>
+                    <span>${Sanitize.sanitizePlayerName(j.nombre)}</span>
                     ${haRespondido ? '✓' : '⏳'}
                 </div>
             `;
@@ -647,10 +648,11 @@ function mostrarClasificacion(container) {
         .filter(j => j.conectado)
         .sort((a, b) => b.puntos - a.puntos);
 
+    // Sanitizar nombres para prevenir XSS
     container.innerHTML = jugadores.map((j, index) => `
         <div class="leaderboard-item">
             <span class="position">${index + 1}</span>
-            <span class="player-name">${j.nombre}</span>
+            <span class="player-name">${Sanitize.sanitizePlayerName(j.nombre)}</span>
             <span class="player-score">${j.puntos} pts</span>
         </div>
     `).join('');
@@ -692,14 +694,14 @@ function mostrarResultadosFinales() {
         );
     });
 
-    // Mostrar podio (top 3)
+    // Mostrar podio (top 3) - nombres sanitizados
     const top3 = jugadores.slice(0, 3);
     elementos.podiumContainer.innerHTML = top3.map((j, i) => {
         const medals = ['🥇', '🥈', '🥉'];
         return `
             <div class="podium-place place-${i + 1}">
                 <div class="medal">${medals[i]}</div>
-                <div class="player-name">${j.nombre}</div>
+                <div class="player-name">${Sanitize.sanitizePlayerName(j.nombre)}</div>
                 <div class="player-score">${j.puntos} pts</div>
             </div>
         `;

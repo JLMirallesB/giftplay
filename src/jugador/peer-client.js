@@ -22,6 +22,12 @@ class PeerClient {
         this.onDisconnectedCallback = null;
         this.onReconnectingCallback = null;
         this.onReconnectedCallback = null;
+        this.onTimeSyncCallback = null;
+        this.onConnectionStatusCallback = null;
+
+        // Connection status tracking
+        this.lastPingTime = null;
+        this.connectionHealthy = true;
 
         // Configuración de reconexión
         this.reconnectAttempts = 0;
@@ -264,8 +270,34 @@ class PeerClient {
                 }
                 break;
 
+            case Protocol.HOST_TO_PLAYER.PING:
+                this.handlePing(data.payload);
+                break;
+
+            case Protocol.HOST_TO_PLAYER.TIME_SYNC:
+                if (this.onTimeSyncCallback) {
+                    this.onTimeSyncCallback(data.payload);
+                }
+                break;
+
             default:
                 console.warn('Tipo de mensaje desconocido:', data.tipo);
+        }
+    }
+
+    /**
+     * Responde a un ping del servidor
+     */
+    handlePing(payload) {
+        this.lastPingTime = Date.now();
+        this.connectionHealthy = true;
+
+        // Respond with pong
+        this.send(Protocol.createPongMessage(payload.timestamp));
+
+        // Notify about healthy connection
+        if (this.onConnectionStatusCallback) {
+            this.onConnectionStatusCallback(true);
         }
     }
 
@@ -353,5 +385,22 @@ class PeerClient {
 
     onReconnected(callback) {
         this.onReconnectedCallback = callback;
+    }
+
+    onTimeSync(callback) {
+        this.onTimeSyncCallback = callback;
+    }
+
+    onConnectionStatus(callback) {
+        this.onConnectionStatusCallback = callback;
+    }
+
+    /**
+     * Verifica si la conexión está saludable (recibió ping recientemente)
+     */
+    isConnectionHealthy() {
+        if (!this.lastPingTime) return true; // No ping yet, assume healthy
+        const timeSinceLastPing = Date.now() - this.lastPingTime;
+        return timeSinceLastPing < 20000; // 20 seconds threshold
     }
 }

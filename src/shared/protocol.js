@@ -9,7 +9,8 @@ const Protocol = {
     PLAYER_TO_HOST: {
         JOIN: 'join',                    // Solicitar unirse a la partida
         ANSWER: 'answer',                // Enviar respuesta
-        DISCONNECT: 'disconnect'         // Notificar desconexión
+        DISCONNECT: 'disconnect',        // Notificar desconexión
+        PONG: 'pong'                     // Respuesta a PING (heartbeat)
     },
 
     // Tipos de mensajes del Presentador → Jugador
@@ -23,7 +24,9 @@ const Protocol = {
         PAUSE: 'pause',                             // Pausar la pregunta
         RESUME: 'resume',                           // Reanudar la pregunta
         KICKED: 'kicked',                           // Jugador expulsado
-        ERROR: 'error'                              // Error
+        ERROR: 'error',                             // Error
+        PING: 'ping',                               // Heartbeat ping
+        TIME_SYNC: 'time_sync'                      // Sincronización de tiempo
     },
 
     /**
@@ -191,6 +194,40 @@ const Protocol = {
         return {
             tipo: this.HOST_TO_PLAYER.ERROR,
             payload: { mensaje }
+        };
+    },
+
+    /**
+     * Crea un mensaje PING (heartbeat del host)
+     * @param {number} timestamp - Timestamp del servidor
+     */
+    createPingMessage(timestamp = Date.now()) {
+        return {
+            tipo: this.HOST_TO_PLAYER.PING,
+            payload: { timestamp }
+        };
+    },
+
+    /**
+     * Crea un mensaje PONG (respuesta heartbeat del jugador)
+     * @param {number} timestamp - Timestamp original del ping
+     */
+    createPongMessage(timestamp) {
+        return {
+            tipo: this.PLAYER_TO_HOST.PONG,
+            payload: { timestamp }
+        };
+    },
+
+    /**
+     * Crea un mensaje TIME_SYNC para sincronizar temporizadores
+     * @param {number} tiempoRestante - Tiempo restante en segundos
+     * @param {number} serverTimestamp - Timestamp del servidor
+     */
+    createTimeSyncMessage(tiempoRestante, serverTimestamp = Date.now()) {
+        return {
+            tipo: this.HOST_TO_PLAYER.TIME_SYNC,
+            payload: { tiempoRestante, serverTimestamp }
         };
     }
 };

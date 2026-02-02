@@ -9,6 +9,7 @@ let emojiSeleccionado = '😀';
 let tiempoInicioPregunta = null;
 let respuestaEnviada = false;
 let puntosTotales = 0;
+let timerInterval = null; // Para limpiar memory leaks
 
 // Referencias DOM
 const elementos = {};
@@ -19,6 +20,27 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarEventos();
     cargarCodigoURL();
 });
+
+// Limpiar recursos al cerrar/navegar (memory leak fix)
+window.addEventListener('beforeunload', () => {
+    limpiarRecursos();
+});
+
+/**
+ * Limpia todos los recursos (timers, conexiones)
+ */
+function limpiarRecursos() {
+    // Detener temporizador
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    // Desconectar peer
+    if (peerClient) {
+        peerClient.disconnect();
+    }
+}
 
 /**
  * Inicializa referencias a elementos DOM
@@ -70,6 +92,10 @@ function inicializarReferenciasDOM() {
     // Error
     elementos.errorText = document.getElementById('error-text');
     elementos.btnReintentar = document.getElementById('btn-reintentar');
+
+    // Indicador de conexión
+    elementos.connectionIndicator = document.getElementById('connection-indicator');
+    elementos.connectionText = document.getElementById('connection-text');
 }
 
 /**
@@ -151,6 +177,9 @@ async function unirseAlJuego() {
         peerClient.onKicked(manejarExpulsion);
         peerClient.onError(manejarError);
         peerClient.onDisconnected(manejarDesconexion);
+        peerClient.onTimeSync(sincronizarTiempo);
+        peerClient.onReconnecting(manejarReconectando);
+        peerClient.onReconnected(manejarReconectado);
 
         // Conectar
         await peerClient.connect(codigo, nombreCompleto);
@@ -170,6 +199,9 @@ function manejarJoinConfirmado(payload) {
     mostrarPantalla('lobby');
     elementos.playerDisplay.textContent = `${emojiSeleccionado} ${elementos.nombreInput.value}`;
     elementos.playersCount.textContent = payload.jugadoresConectados;
+
+    // Mostrar indicador de conexión
+    actualizarIndicadorConexion('connected');
 }
 
 /**
@@ -291,17 +323,51 @@ window.enviarRespuestaMultiple = function() {
  * Inicia el temporizador visual
  */
 function iniciarTemporizador(tiempo) {
+    // Limpiar timer anterior si existe (memory leak fix)
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
     let tiempoRestante = tiempo;
     elementos.tiempoRestante.textContent = tiempoRestante;
 
-    const interval = setInterval(() => {
+    timerInterval = setInterval(() => {
         tiempoRestante--;
-        elementos.tiempoRestante.textContent = tiempoRestante;
+        elementos.tiempoRestante.textContent = Math.max(0, tiempoRestante);
 
         if (tiempoRestante <= 0) {
-            clearInterval(interval);
+            clearInterval(timerInterval);
+            timerInterval = null;
         }
     }, 1000);
+}
+
+/**
+ * Sincroniza el temporizador con el servidor
+ */
+function sincronizarTiempo(payload) {
+    // Limpiar timer anterior
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    // Usar el tiempo del servidor
+    let tiempoRestante = payload.tiempoRestante;
+    elementos.tiempoRestante.textContent = tiempoRestante;
+
+    timerInterval = setInterval(() => {
+        tiempoRestante--;
+        elementos.tiempoRestante.textContent = Math.max(0, tiempoRestante);
+
+        if (tiempoRestante <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }, 1000);
+
+    console.log('Tiempo sincronizado con servidor:', tiempoRestante);
 }
 
 /**
@@ -417,8 +483,56 @@ function manejarError(error) {
  * Maneja desconexión
  */
 function manejarDesconexion() {
+    actualizarIndicadorConexion('disconnected');
     mostrarPantalla('error');
     elementos.errorText.textContent = 'Se ha perdido la conexión con el presentador.';
+
+    // Limpiar timer (memory leak fix)
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+/**
+ * Maneja intento de reconexión
+ */
+function manejarReconectando(intento, maxIntentos) {
+    console.log(`Reconectando... intento ${intento}/${maxIntentos}`);
+    actualizarIndicadorConexion('reconnecting', `Reconectando ${intento}/${maxIntentos}...`);
+}
+
+/**
+ * Maneja reconexión exitosa
+ */
+function manejarReconectado() {
+    console.log('Reconectado exitosamente');
+    actualizarIndicadorConexion('connected');
+}
+
+/**
+ * Actualiza el indicador de estado de conexión
+ */
+function actualizarIndicadorConexion(estado, texto = null) {
+    if (!elementos.connectionIndicator) return;
+
+    // Mostrar el indicador
+    elementos.connectionIndicator.classList.remove('hidden');
+
+    // Quitar todas las clases de estado
+    elementos.connectionIndicator.classList.remove('connected', 'reconnecting', 'disconnected');
+
+    // Añadir la clase correspondiente
+    elementos.connectionIndicator.classList.add(estado);
+
+    // Actualizar texto
+    const textos = {
+        connected: 'Conectado',
+        reconnecting: texto || 'Reconectando...',
+        disconnected: 'Desconectado'
+    };
+
+    elementos.connectionText.textContent = texto || textos[estado] || estado;
 }
 
 // Utilidades

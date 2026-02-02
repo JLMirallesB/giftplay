@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarInstancias();
 });
 
+// Limpiar recursos al cerrar/navegar (memory leak fix)
+window.addEventListener('beforeunload', () => {
+    limpiarRecursos();
+});
+
 /**
  * Inicializa referencias a elementos DOM
  */
@@ -392,8 +397,14 @@ async function empezarSesion() {
         urlJugador.searchParams.set('partida', gameId);
         elementos.urlPartida.value = urlJugador.href;
 
-        // Generar QR
+        // Limpiar QR anterior si existe (memory leak fix)
+        if (qrCodeInstance) {
+            qrCodeInstance.clear();
+            qrCodeInstance = null;
+        }
         elementos.qrCode.innerHTML = '';
+
+        // Generar QR
         qrCodeInstance = new QRCode(elementos.qrCode, {
             text: urlJugador.href,
             width: 256,
@@ -427,13 +438,45 @@ async function copiarURL() {
 
 /**
  * Maneja un nuevo jugador que se une
+ * @param {Object} jugador - Datos del jugador
+ * @param {boolean} esReconexion - Si es una reconexión
  */
-function manejarNuevoJugador(jugador) {
+function manejarNuevoJugador(jugador, esReconexion = false) {
     actualizarListaJugadores();
 
     // Habilitar botón de empezar si hay al menos 1 jugador
     if (peerManager.getPlayers().length >= 1) {
         elementos.btnEmpezarJuego.disabled = false;
+    }
+
+    // Si es reconexión durante el juego, enviar estado actual
+    if (esReconexion && gameState.estado === 'jugando') {
+        console.log(`Enviando estado actual al jugador reconectado: ${jugador.nombre}`);
+
+        // Notificar que el juego ya empezó
+        peerManager.sendToPlayer(jugador.peerId,
+            Protocol.createGameStartedMessage(gameState.getTotalPreguntas())
+        );
+
+        // Si hay una pregunta activa, enviarla
+        const pregunta = gameState.getPreguntaActual();
+        if (pregunta && gameState.tiempoRestante > 0) {
+            setTimeout(() => {
+                peerManager.sendToPlayer(jugador.peerId,
+                    Protocol.createQuestionMessage(
+                        pregunta,
+                        gameState.getNumeroPreguntaActual(),
+                        gameState.getTotalPreguntas(),
+                        gameState.tiempoRestante
+                    )
+                );
+
+                // Enviar sincronización de tiempo
+                peerManager.sendToPlayer(jugador.peerId,
+                    Protocol.createTimeSyncMessage(gameState.tiempoRestante)
+                );
+            }, 500);
+        }
     }
 }
 
@@ -716,7 +759,30 @@ function mostrarResultadosFinales() {
  */
 function nuevaPartida() {
     if (confirm(t('confirm_new_game') || '¿Iniciar una nueva partida?')) {
+        // Limpiar recursos antes de recargar (memory leak fix)
+        limpiarRecursos();
         location.reload();
+    }
+}
+
+/**
+ * Limpia todos los recursos (timers, conexiones, QR)
+ */
+function limpiarRecursos() {
+    // Detener temporizador del juego
+    if (gameState) {
+        gameState.detenerTemporizador();
+    }
+
+    // Destruir PeerManager (detiene heartbeat y cierra conexiones)
+    if (peerManager) {
+        peerManager.destroy();
+    }
+
+    // Limpiar QRCode
+    if (qrCodeInstance) {
+        qrCodeInstance.clear();
+        qrCodeInstance = null;
     }
 }
 
@@ -750,6 +816,35 @@ function exportarResultados() {
 function manejarDesconexionJugador(jugador) {
     console.log('Jugador desconectado:', jugador.nombre);
     actualizarListaJugadores();
+
+    // Si estamos en una pregunta activa, actualizar la lista de respuestas
+    if (gameState.estado === 'jugando' && gameState.tiempoRestante > 0) {
+        actualizarListaRespuestas();
+    }
+}
+
+/**
+ * Actualiza la lista de respuestas durante una pregunta
+ */
+function actualizarListaRespuestas() {
+    const jugadores = peerManager.getPlayers();
+    const conectados = jugadores.filter(j => j.conectado);
+
+    elementos.totalPlayers.textContent = conectados.length;
+
+    elementos.responsesList.innerHTML = jugadores
+        .map(j => {
+            const haRespondido = gameState.haRespondido(j.peerId);
+            const estadoClase = !j.conectado ? 'disconnected' : (haRespondido ? 'answered' : '');
+            const estadoIcono = !j.conectado ? '⚠️' : (haRespondido ? '✓' : '⏳');
+
+            return `
+                <div class="response-item ${estadoClase}">
+                    <span>${Sanitize.sanitizePlayerName(j.nombre)}</span>
+                    ${estadoIcono}
+                </div>
+            `;
+        }).join('');
 }
 
 /**

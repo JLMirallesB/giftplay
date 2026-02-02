@@ -13,6 +13,12 @@ class PeerManager {
         this.onPlayerAnswerCallback = null;
         this.onPlayerDisconnectCallback = null;
         this.onErrorCallback = null;
+
+        // Heartbeat configuration
+        this.heartbeatInterval = null;
+        this.heartbeatIntervalMs = 5000; // Ping every 5 seconds
+        this.heartbeatTimeoutMs = 15000; // Consider disconnected after 15s without pong
+        this.lastPongTime = new Map(); // Map<peerId, timestamp>
     }
 
     /**
@@ -100,9 +106,84 @@ class PeerManager {
                 this.handlePlayerDisconnect(peerId);
                 break;
 
+            case Protocol.PLAYER_TO_HOST.PONG:
+                this.handlePong(peerId, data.payload);
+                break;
+
             default:
                 console.warn('Tipo de mensaje desconocido:', data.tipo);
         }
+    }
+
+    /**
+     * Maneja la respuesta PONG de un jugador
+     */
+    handlePong(peerId, payload) {
+        this.lastPongTime.set(peerId, Date.now());
+        const jugador = this.jugadores.get(peerId);
+        if (jugador && !jugador.conectado) {
+            // Reconnected
+            jugador.conectado = true;
+            console.log(`Jugador ${jugador.nombre} reconectado (heartbeat)`);
+        }
+    }
+
+    /**
+     * Inicia el sistema de heartbeat
+     */
+    startHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+        }
+
+        this.heartbeatInterval = setInterval(() => {
+            this.sendHeartbeat();
+            this.checkHeartbeatTimeouts();
+        }, this.heartbeatIntervalMs);
+
+        console.log('Heartbeat iniciado');
+    }
+
+    /**
+     * Detiene el sistema de heartbeat
+     */
+    stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+        console.log('Heartbeat detenido');
+    }
+
+    /**
+     * Envía ping a todos los jugadores conectados
+     */
+    sendHeartbeat() {
+        const pingMessage = Protocol.createPingMessage();
+        this.connections.forEach((conn, peerId) => {
+            if (conn.open) {
+                conn.send(pingMessage);
+            }
+        });
+    }
+
+    /**
+     * Verifica timeouts de heartbeat y marca jugadores como desconectados
+     */
+    checkHeartbeatTimeouts() {
+        const now = Date.now();
+        this.jugadores.forEach((jugador, peerId) => {
+            if (!jugador.conectado) return;
+
+            const lastPong = this.lastPongTime.get(peerId);
+            if (lastPong && (now - lastPong) > this.heartbeatTimeoutMs) {
+                console.log(`Jugador ${jugador.nombre} no responde al heartbeat`);
+                jugador.conectado = false;
+                if (this.onPlayerDisconnectCallback) {
+                    this.onPlayerDisconnectCallback(jugador);
+                }
+            }
+        });
     }
 
     /**
@@ -111,14 +192,49 @@ class PeerManager {
     handlePlayerJoin(peerId, payload) {
         const nombre = payload.nombre;
 
-        // Verificar si el nombre ya existe
-        const nombreExiste = Array.from(this.jugadores.values()).some(j => j.nombre === nombre);
-        if (nombreExiste) {
-            this.sendToPlayer(peerId, Protocol.createErrorMessage('El nombre ya está en uso'));
-            return;
+        // Verificar si es una reconexión (mismo nombre pero desconectado)
+        const jugadorExistente = Array.from(this.jugadores.entries()).find(
+            ([_, j]) => j.nombre === nombre
+        );
+
+        if (jugadorExistente) {
+            const [oldPeerId, jugador] = jugadorExistente;
+
+            // Es una reconexión - actualizar el peerId
+            if (!jugador.conectado) {
+                console.log(`Jugador ${nombre} reconectándose con nuevo peerId`);
+
+                // Remover la entrada vieja y crear una nueva con el nuevo peerId
+                this.jugadores.delete(oldPeerId);
+                this.connections.delete(oldPeerId);
+                this.lastPongTime.delete(oldPeerId);
+
+                jugador.peerId = peerId;
+                jugador.conectado = true;
+
+                this.jugadores.set(peerId, jugador);
+                this.lastPongTime.set(peerId, Date.now());
+
+                // Confirmar unión
+                this.sendToPlayer(peerId, Protocol.createJoinConfirmedMessage(
+                    this.getConnectedPlayersCount()
+                ));
+
+                // Notificar reconexión
+                if (this.onPlayerJoinCallback) {
+                    this.onPlayerJoinCallback(jugador, true); // true = reconexión
+                }
+
+                console.log(`Jugador ${nombre} reconectado. Puntos: ${jugador.puntos}`);
+                return;
+            } else {
+                // El nombre ya está en uso por alguien conectado
+                this.sendToPlayer(peerId, Protocol.createErrorMessage('El nombre ya está en uso'));
+                return;
+            }
         }
 
-        // Agregar jugador
+        // Nuevo jugador
         const jugador = {
             peerId: peerId,
             nombre: nombre,
@@ -130,16 +246,29 @@ class PeerManager {
         };
 
         this.jugadores.set(peerId, jugador);
+        this.lastPongTime.set(peerId, Date.now()); // Initialize heartbeat tracking
+
+        // Start heartbeat if first player
+        if (this.jugadores.size === 1) {
+            this.startHeartbeat();
+        }
 
         // Confirmar unión
         this.sendToPlayer(peerId, Protocol.createJoinConfirmedMessage(this.jugadores.size));
 
         // Notificar al presentador
         if (this.onPlayerJoinCallback) {
-            this.onPlayerJoinCallback(jugador);
+            this.onPlayerJoinCallback(jugador, false); // false = nuevo jugador
         }
 
         console.log(`Jugador ${nombre} unido. Total: ${this.jugadores.size}`);
+    }
+
+    /**
+     * Obtiene el número de jugadores conectados
+     */
+    getConnectedPlayersCount() {
+        return Array.from(this.jugadores.values()).filter(j => j.conectado).length;
     }
 
     /**
@@ -256,6 +385,8 @@ class PeerManager {
      * Cierra todas las conexiones y destruye el peer
      */
     destroy() {
+        this.stopHeartbeat();
+        this.lastPongTime.clear();
         this.connections.forEach(conn => conn.close());
         this.connections.clear();
         this.jugadores.clear();

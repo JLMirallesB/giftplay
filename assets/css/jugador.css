@@ -3,6 +3,59 @@
  * GIFTPlay
  */
 
+/* Indicador de conexión */
+.connection-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--color-bg-card);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.connection-indicator.hidden {
+    display: none;
+}
+
+.connection-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-success);
+    animation: pulse-dot 2s infinite;
+}
+
+.connection-indicator.connected .connection-dot {
+    background: var(--color-success);
+}
+
+.connection-indicator.reconnecting .connection-dot {
+    background: var(--color-warning);
+    animation: pulse-fast 0.5s infinite;
+}
+
+.connection-indicator.disconnected .connection-dot {
+    background: var(--color-error);
+    animation: none;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.9); }
+}
+
+@keyframes pulse-fast {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
 /* Pantalla de Entrada */
 .form-section {
     max-width: 400px;

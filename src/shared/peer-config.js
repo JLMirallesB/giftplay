@@ -17,7 +17,7 @@ const PeerConfig = {
     port: 443,
     path: '/',
     secure: true,
-    debug: 1, // Reducido para producción (0=ninguno, 1=errores, 2=warnings, 3=todo)
+    debug: 3, // DEBUG: Máximo nivel para diagnóstico (0=ninguno, 1=errores, 2=warnings, 3=todo)
 
     /**
      * Obtiene la configuración de servidores ICE

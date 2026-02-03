@@ -185,10 +185,23 @@ async function unirseAlJuego() {
         await peerClient.connect(codigo, nombreCompleto);
 
     } catch (error) {
-        console.error('Error al unirse:', error);
-        manejarError('No se pudo conectar. Verifica el código e intenta de nuevo.');
+        console.error('[DEBUG] Error al unirse:', error);
+        console.error('[DEBUG] Error stack:', error.stack);
+
+        // Mostrar error detallado para diagnóstico
+        let mensajeError = 'No se pudo conectar. ';
+        if (error.type) {
+            mensajeError += `Tipo: ${error.type}. `;
+        }
+        if (error.message) {
+            mensajeError += error.message;
+        } else {
+            mensajeError += 'Verifica el código e intenta de nuevo.';
+        }
+
+        manejarError(mensajeError);
         elementos.btnUnirse.disabled = false;
-        elementos.btnUnirse.textContent = t('join_game');
+        elementos.btnUnirse.textContent = t('join_game') || '¡A jugar!';
     }
 }
 

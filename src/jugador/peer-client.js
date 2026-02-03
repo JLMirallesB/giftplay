@@ -49,47 +49,90 @@ class PeerClient {
             this.gameId = gameId;
             this.nombreJugador = nombreJugador;
 
+            console.log('[DEBUG] Iniciando conexión...');
+            console.log('[DEBUG] gameId:', gameId);
+            console.log('[DEBUG] nombreJugador:', nombreJugador);
+
             // Usar configuración centralizada (sin credenciales hardcodeadas)
-            const peerConfig = PeerConfig.getFullConfig();
+            let peerConfig;
+            try {
+                peerConfig = PeerConfig.getFullConfig();
+                console.log('[DEBUG] PeerConfig obtenido:', JSON.stringify(peerConfig, null, 2));
+            } catch (configError) {
+                console.error('[DEBUG] Error al obtener PeerConfig:', configError);
+                reject(configError);
+                return;
+            }
 
             // Crear peer con ID aleatorio
-            this.peer = new Peer(null, peerConfig);
+            console.log('[DEBUG] Creando Peer...');
+            try {
+                this.peer = new Peer(null, peerConfig);
+                console.log('[DEBUG] Peer creado correctamente');
+            } catch (peerError) {
+                console.error('[DEBUG] Error al crear Peer:', peerError);
+                reject(peerError);
+                return;
+            }
 
             this.peer.on('open', (id) => {
-                console.log('Peer del jugador abierto con ID:', id);
+                console.log('[DEBUG] Peer abierto con ID:', id);
 
                 // Conectar al presentador
+                console.log('[DEBUG] Conectando al presentador con gameId:', gameId);
                 this.conn = this.peer.connect(gameId, { reliable: true });
 
+                if (!this.conn) {
+                    console.error('[DEBUG] peer.connect() devolvió null/undefined');
+                    reject(new Error('No se pudo crear la conexión'));
+                    return;
+                }
+
+                console.log('[DEBUG] Conexión creada, esperando evento open...');
+
                 this.conn.on('open', () => {
-                    console.log('Conectado al presentador');
+                    console.log('[DEBUG] Conexión abierta con presentador');
                     // Enviar solicitud de unión
                     this.send(Protocol.createJoinMessage(nombreJugador));
+                    console.log('[DEBUG] Mensaje JOIN enviado');
                     resolve();
                 });
 
                 this.conn.on('data', (data) => {
+                    console.log('[DEBUG] Datos recibidos:', data);
                     this.handleHostMessage(data);
                 });
 
                 this.conn.on('close', () => {
-                    console.log('Conexión con presentador cerrada');
+                    console.log('[DEBUG] Conexión con presentador cerrada');
                     if (this.onDisconnectedCallback) {
                         this.onDisconnectedCallback();
                     }
                 });
 
                 this.conn.on('error', (err) => {
-                    console.error('Error en conexión:', err);
+                    console.error('[DEBUG] Error en conexión DataConnection:', err);
+                    console.error('[DEBUG] Error type:', err.type);
+                    console.error('[DEBUG] Error message:', err.message);
                     if (this.onErrorCallback) {
                         this.onErrorCallback(err);
                     }
                     reject(err);
                 });
+
+                // Timeout si no se abre la conexión en 15 segundos
+                setTimeout(() => {
+                    if (!this.conn || !this.conn.open) {
+                        console.error('[DEBUG] Timeout: la conexión no se abrió en 15 segundos');
+                        reject(new Error('Timeout: no se pudo conectar al presentador'));
+                    }
+                }, 15000);
             });
 
             this.peer.on('error', (err) => {
-                console.error('Error de PeerJS:', err);
+                console.error('[DEBUG] Error de PeerJS:', err);
+                console.error('[DEBUG] Error type:', err.type);
+                console.error('[DEBUG] Error message:', err.message || err);
                 if (this.onErrorCallback) {
                     this.onErrorCallback(err);
                 }
@@ -97,9 +140,13 @@ class PeerClient {
             });
 
             this.peer.on('disconnected', () => {
-                console.log('Peer desconectado');
+                console.log('[DEBUG] Peer desconectado del servidor');
                 // Intentar reconexión automática
                 this.attemptReconnect();
+            });
+
+            this.peer.on('close', () => {
+                console.log('[DEBUG] Peer cerrado completamente');
             });
         });
     }
